@@ -16,7 +16,7 @@ class Kakaotime():
             tm = '오전 {0}:{1:02d}'.format(tm.hour, tm.minute)
         return tm
     
-    def convert(self, hour, min):
+    def convert_to_text(self, hour, min):
         if not isinstance(hour, int): raise TypeError('인자 hour은 str 객체여야 합니다.')
         if not isinstance(min, int): raise TypeError('인자 min은 str 객체여야 합니다.')
 
@@ -29,24 +29,27 @@ class Kakaotime():
 
 
 class Kakaochat():
-    def __init__(self, name, tm, text):
-        self.set(name, tm, text)
+    def __init__(self, sender, tm, text):
+        self.set(sender, tm, text)
 
     def __str__(self):
-        return f'[{self.name}] [{self.tm}] {self.text}'
+        return f'[{self.nasenderme}] [{self.tm}] {self.text}'
 
-    def set(self, name, tm, text):
-        if not isinstance(name, str): raise TypeError('인자 name은 str 객체여야 합니다.')
+    def set(self, sender, tm, text):
+        if not isinstance(sender, str): raise TypeError('인자 sender은 str 객체여야 합니다.')
         if not isinstance(tm, str): raise TypeError('인자 tm은 str 객체여야 합니다.')
         if not isinstance(text, str): raise TypeError('인자 text은 str 객체여야 합니다.')
 
-        self.name = name
+        self.sender = sender
         self.tm = tm
         self.text = text
 
     def __eq__(self, other):
         if not isinstance(other, Kakaochat): raise TypeError('인자 other은 Kakaochat 객체여야 합니다.')
-        return (self.name==other.name and self.tm==other.tm and self.text==other.text)
+        return (self.sender==other.sender and self.tm==other.tm and self.text==other.text)
+
+    def getTuple(self):
+        return (sender, tm, text)
 
 
 class KakaochatList():
@@ -93,6 +96,9 @@ class KakaochatList():
             return len(self.chatlist)-1 - self.chatlist[::-1].index(fkc)
         else:
             raise TypeError('인자 kakaochat은 Kakaochat 객체여야 합니다.')
+
+    def getListofTuple(self):
+        return [c.getTuple() for c in self.chatlist]
 
 
 class KakaoChatter():
@@ -146,12 +152,11 @@ class KakaoChatter():
         time.sleep(1)
         self.sendReturn(hwndkakao_edit3)
         time.sleep(1)
-
         
     def readchat(self):
-        self.PostVirtualKey(ord('A'), [wc.VK_CONTROL])
+        self._PostVirtualKey(ord('A'), [wc.VK_CONTROL])
         time.sleep(0.1)
-        self.PostVirtualKey(ord('C'), [wc.VK_CONTROL])
+        self._PostVirtualKey(ord('C'), [wc.VK_CONTROL])
         lc = re.split('\r|\n', clipboard.GetData())
         
         ret = KakaochatList()
@@ -181,7 +186,7 @@ class KakaoChatter():
         if not isinstance(kc, Kakaochat): raise TypeError('인자 kc은 Kakaochat 객체여야 합니다.')
         self.lastchat = kc
         
-    def PostVirtualKey(self, key, shift):
+    def _PostVirtualKey(self, key, shift):
         # https://whynhow.info/44338/How-to-transfer-the-key-combination-(CTRL--A-etc)-to-an-inactive-window?
         PBYTE256 = ctypes.c_ubyte * 256
         GetKeyboardState = self._user32.GetKeyboardState
@@ -231,7 +236,39 @@ class KakaoChatter():
             return False
 
 
-def main2():
+class Replier():
+    def __init__(self):
+        start("username", "chatroom")
+
+    def start(self, username, chatroom):
+        self.kc = KakaoChatter(username, chatroom)
+        self.run()
+
+    def run(self):
+        readcycle = 0.5
+        goodend = False
+        while wg.IsWindow(kc.hwndMain) and (not goodend):
+            newchat = kc.readNewchat()
+            for nc in newchat.chatlist:
+                goodend = reply(nc)
+
+            time.sleep(readcycle)
+
+
+    # chat 은 Kakaochat 객체
+    # sender, tm, text 어트리뷰트를 가짐. 각각 보낸 사람(str), 시간(str), 내용(str)
+    def reply(self, chat):
+        if chat.text == endmsg:
+            return True
+        if len(nc.text) > 1 and nc.text[:1] == 'ㄸ':
+            self.sendText(nc.text[1:])
+
+
+    def sendText(self, text):
+        self.kc.sendText(text)
+
+
+def main():
     kc = KakaoChatter('김영후', r'김영후')
     #kc = KakaoChatter('뉴비', r'카카오톡 봇 만들기 방&카카오톡 봇 질문방')
     #kc = KakaoChatter('강인공지능', r'Abstract')
@@ -261,24 +298,5 @@ def main2():
         print('앵무새봇이 강제 종료되었습니다.')
 
 
-
-def main():
-    kc = KakaoChatter('뉴비', '연두님이 고물취급하는 봇')
-    runtime = 10
-    readcycle = 0.5
-    startmessage = f'앵무새봇 시작 약 {runtime}초 후에 종료'
-    kc.sendText(startmessage)
-    prev = startmessage
-    print(kc.readLastchat())
-    for i in range(int(runtime/readcycle)):
-        lastchat = kc.readLastchat()[2]
-        if prev != lastchat:
-            kc.sendText(lastchat)
-        prev = lastchat
-        time.sleep(readcycle)
-
-    kc.sendText('앵무새봇 종료')
-
-
 if __name__ == '__main__':
-    main2()
+    main()
