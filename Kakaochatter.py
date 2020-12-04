@@ -17,8 +17,8 @@ class Kakaotime():
         return tm
     
     def convert(self, hour, min):
-        if isinstance(hour, int): raise TypeError('인자 hour은 str 객체여야 합니다.')
-        if isinstance(min, int): raise TypeError('인자 min은 str 객체여야 합니다.')
+        if not isinstance(hour, int): raise TypeError('인자 hour은 str 객체여야 합니다.')
+        if not isinstance(min, int): raise TypeError('인자 min은 str 객체여야 합니다.')
 
         tm = ''
         if hour > 12:
@@ -45,6 +45,7 @@ class Kakaochat():
         self.text = text
 
     def __eq__(self, other):
+        if not isinstance(other, Kakaochat): raise TypeError('인자 other은 Kakaochat 객체여야 합니다.')
         return (self.name==other.name and self.tm==other.tm and self.text==other.text)
 
 
@@ -96,8 +97,8 @@ class KakaochatList():
 
 class KakaoChatter():
     def __init__(self, myname, chatroom_name):
-        if isinstance(myname, str): raise TypeError('인자 myname은 str 객체여야 합니다.')
-        if isinstance(chatroom_name, str): raise TypeError('인자 chatroom_name은 str 객체여야 합니다.')
+        if not isinstance(myname, str): raise TypeError('인자 myname은 str 객체여야 합니다.')
+        if not isinstance(chatroom_name, str): raise TypeError('인자 chatroom_name은 str 객체여야 합니다.')
 
         self.myname = myname
         self.setNewChatroom(chatroom_name)
@@ -105,24 +106,27 @@ class KakaoChatter():
         self.lastchat = None
         
     def setNewChatroom(self, chatroom_name):
-        if isinstance(chatroom_name, str): raise TypeError('인자 chatroom_name은 str 객체여야 합니다.')
+        if not isinstance(chatroom_name, str): raise TypeError('인자 chatroom_name은 str 객체여야 합니다.')
         
         self.chatroom_name = chatroom_name
         self.hwndMain = wg.FindWindow(None, self.chatroom_name)
-        if not wg.isWindow(self.hwndMain):
-            open_chatroom()
+        if not wg.IsWindow(self.hwndMain):
+            self.open_chatroom()
+            self.hwndMain = wg.FindWindow(None, self.chatroom_name)
+
         self.hwndEdit = wg.FindWindowEx(self.hwndMain, None, "RICHEDIT50W", None)
         self.hwndList = wg.FindWindowEx(self.hwndMain, None, "EVA_VH_ListControl_Dblclk", None)
 
-    def sendReturn(self):
-        wa.PostMessage(self.hwndEdit, wc.WM_KEYDOWN, wc.VK_RETURN, 0)
+
+    def sendReturn(self, hwnd):
+        wa.PostMessage(hwnd, wc.WM_KEYDOWN, wc.VK_RETURN, 0)
         time.sleep(0.01)
-        wa.PostMessage(self.hwndEdit, wc.WM_KEYUP, wc.VK_RETURN, 0)
+        wa.PostMessage(hwnd, wc.WM_KEYUP, wc.VK_RETURN, 0)
         
     def sendText(self, text):
-        if isinstance(text, str): raise TypeError('인자 text은 str 객체여야 합니다.')
+        if not isinstance(text, str): raise TypeError('인자 text은 str 객체여야 합니다.')
         wa.SendMessage(self.hwndEdit, wc.WM_SETTEXT, 0, text)
-        self.sendReturn()
+        self.sendReturn(self.hwndEdit)
         self.setLastchat(self.readLastchat())
 
     def setChatroom_open(self, chatroom_name):
@@ -139,8 +143,8 @@ class KakaoChatter():
         hwndkakao_edit3 = wg.FindWindowEx(hwndkakao_edit2_2, None, "Edit", None)
 
         wa.SendMessage(hwndkakao_edit3, wc.WM_SETTEXT, 0, self.chatroom_name)
-        time.sleep(1)   # 안정성 위해 필요
-        SendReturn(hwndkakao_edit3)
+        time.sleep(1)
+        self.sendReturn(hwndkakao_edit3)
         time.sleep(1)
 
         
@@ -174,8 +178,7 @@ class KakaoChatter():
         return cl.fromlast(0)
     
     def setLastchat(self, kc):
-        if not isinstance(kc, Kakaochat):
-            raise TypeError('인자 kc은 Kakaochat 객체여야 합니다.')
+        if not isinstance(kc, Kakaochat): raise TypeError('인자 kc은 Kakaochat 객체여야 합니다.')
         self.lastchat = kc
         
     def PostVirtualKey(self, key, shift):
